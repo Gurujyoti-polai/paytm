@@ -10,7 +10,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // signup
 export const signup = async (req: Request, res: Response): Promise<void> => {
-    const { username, email, password } = req.body;
+    const { name, email, password } = req.body;
+    console.log("Body:", req.body);
     const userExists = await User.findOne({ email });
     if (userExists) {
         res.status(400).json({ msg: 'user already exists' });
@@ -18,7 +19,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ username, email, password: hashedPassword });
+    const newUser = new User({ name, email, password: hashedPassword });
     await newUser.save();
 
     res.status(201).json({ msg: 'User created' });
@@ -27,6 +28,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
 // signin
 export const signin = async (req: Request, res: Response): Promise<void> => {
     const { email, password } = req.body;
+    console.log("Body in signIN:", req.body);
     const user = await User.findOne({ email });
     if (!user) {
         res.status(400).json({ msg: 'Invalid credentials' });
@@ -39,6 +41,8 @@ export const signin = async (req: Request, res: Response): Promise<void> => {
         return;
     }
 
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: 'Id' });
-    // res.json({ token, user: { id: user._id, username: user.username, email: user.email } })
+    // console.log("Expires in:", );
+    
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1d' });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email } })
 }

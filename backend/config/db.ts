@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const connectDB = async () => {
-    console.log('MONGO_URL:', process.env.MONGO_URL); // 👈 this must not be undefined
+    // console.log('MONGO_URL:', process.env.MONGO_URL); // 👈 this must not be undefined
 
     if (!process.env.MONGO_URL) {
         console.error('❌ MONGO_URL is undefined. Check your .env file.');

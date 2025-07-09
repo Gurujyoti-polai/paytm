@@ -10,7 +10,7 @@ function Signup() {
   const handleSubmit = async (e:React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/auth/signup', form);
+      await axios.post('http://localhost:5001/api/auth/signup', form);
       alert('Signup successful');
       navigate('/signin', { replace: true });
     } catch (err:any) {

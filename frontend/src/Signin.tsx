@@ -10,7 +10,7 @@ function Signin() {
     const handleSubmit = async (e:React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         try {
-            const res = await axios.post('http://localhost:5000/api/auth/signin', form);
+            const res = await axios.post('http://localhost:5001/api/auth/signin', form);
             // console.log("Request sent to backend");
             if(res.data.token){
                 localStorage.setItem('token', res.data.token);

@@ -9,7 +9,7 @@ const Dashboard = () => {
       try {
         console.log("📡 Requesting /api/auth/me...");
         const token = localStorage.getItem('token');
-        const { data } = await axios.get('http://localhost:5000/api/auth/me', {
+        const { data } = await axios.get('http://localhost:5001/api/auth/me', {
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -13,5 +13,6 @@ router.get("/me", verifyToken, (req: AuthRequest, res: Response) => {
   // res.json({ message: `Welcome, user ${userId}` });
   res.json({ userId: req.userId });
 });
+// router.get("/transaction",)
 
 export default router;

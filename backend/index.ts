@@ -7,6 +7,7 @@ import authRoutes from "./routes/authRoutes";
 import connectDB from "./config/db";
 import { AuthRequest, verifyToken } from "./middleware/authMiddleware";
 import walletRoutes from "./routes/walletRoutes";
+import adminRoutes from "./routes/adminRoutes";
 
 connectDB();
 
@@ -36,6 +37,7 @@ app.get("/api/me", verifyToken, (req: AuthRequest, res: Response) => {
 });
 
 app.use("/api/wallet", verifyToken, walletRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.listen(process.env.PORT || 5001, () => {
   console.log(`Server running on port ${process.env.PORT || 5000}`);

@@ -10,7 +10,7 @@ export const getBalance = async (req: any, res: Response): Promise<void> => {
   console.log("Inside getBalance");
   if (!wallet) {
     wallet = await Wallet.create({ user: req.userId, balance: 0 });
-    console.log("wallet is initialized");
+    console.log("wallet is initialized", wallet);
   }
   console.log("This the balance ", wallet.balance);
   res.json({ balance: wallet.balance });
@@ -26,19 +26,44 @@ export const sendMoney = async (req: any, res: Response): Promise<void> => {
     }
 
     const sender = await User.findById(req.userId);
+    console.log("The sender: ", sender?.email);
+
     if (!sender) {
       res.status(404).json({ message: "Sender not found" });
       return;
     }
 
     const recipient = await User.findOne({ email: recipientEmail });
+    console.log("The reciver: ", recipient?.email);
+
     if (!recipient) {
       res.status(404).json({ message: "Recipient not found" });
       return;
     }
 
+    console.log("Sender ID: ", sender._id);
+    console.log("Recipient ID: ", recipient._id);
+
     const senderWallet = await Wallet.findOne({ user: sender._id });
-    const recipientWallet = await Wallet.findOne({ user: recipient._id });
+    let recipientWallet = await Wallet.findOne({ user: recipient._id });
+
+    console.log("Recipient full object:", recipient);
+    console.log("typeof recipient:", typeof recipient);
+    console.log("typeof recipient._id:", typeof recipient._id);
+
+    if (!recipientWallet) {
+      console.log("🧾 Creating wallet for recipient:", recipient._id);
+
+      recipientWallet = await Wallet.create({
+        user: recipient._id, // Keep as ObjectId
+        balance: 0,
+      });
+
+      console.log("✅ Created recipient wallet:", recipientWallet);
+    }
+
+    console.log("Sender money: ", senderWallet);
+    console.log("Reciever money: ", recipientWallet);
 
     if (!senderWallet || !recipientWallet) {
       res

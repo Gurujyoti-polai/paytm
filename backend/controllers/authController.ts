@@ -4,6 +4,7 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 import { PrismaClient } from "@prisma/client";
+import { signInSchema, signUpSchema } from "../validators/authSchema";
 
 const prisma = new PrismaClient();
 
@@ -11,8 +12,13 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // signup
 export const signup = async (req: Request, res: Response): Promise<void> => {
-  const { name, email, password, isAdmin } = req.body;
-  console.log("Body:", req.body);
+  const result = signUpSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ errors: result.error.flatten().fieldErrors });
+    return;
+  }
+  const { name, email, password, isAdmin } = result.data;
+  console.log("Body:", result.data);
   const existingUser = await prisma.user.findUnique({
     where: { email },
   });
@@ -44,8 +50,19 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
 
 // signin
 export const signin = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
-  console.log("Body in signIN:", req.body);
+  // ✅ Validate input using Zod
+  const result = signInSchema.safeParse(req.body);
+
+  if (!result.success) {
+    res.status(400).json({
+      message: "Validation failed",
+      errors: result.error.flatten().fieldErrors,
+    });
+
+    return;
+  }
+  const { email, password } = result.data;
+  console.log("Body in signIN:", result.data);
   const user = await prisma.user.findUnique({
     where: { email },
   });

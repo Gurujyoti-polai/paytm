@@ -1,6 +1,7 @@
 // controllers/walletController.ts
 import { Request, Response } from "express";
 import { PrismaClient, Prisma } from "@prisma/client";
+import { sendMoneySchema } from "../validators/walletSchema";
 
 const prisma = new PrismaClient();
 
@@ -22,7 +23,12 @@ export const getBalance = async (req: any, res: Response): Promise<void> => {
 };
 
 export const sendMoney = async (req: any, res: Response): Promise<void> => {
-  const { recipientEmail, amount } = req.body;
+  const result = sendMoneySchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ errors: result.error.flatten().fieldErrors });
+    return;
+  }
+  const { recipientEmail, amount } = result.data;
 
   if (!recipientEmail || !amount || amount <= 0) {
     res.status(400).json({ message: "Invalid recipient or amount" });

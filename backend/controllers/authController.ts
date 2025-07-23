@@ -3,25 +3,42 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-import { User } from "../models/Users";
-const { model } = require("mongoose");
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // signup
 export const signup = async (req: Request, res: Response): Promise<void> => {
-  const { name, email, password } = req.body;
+  const { name, email, password, isAdmin } = req.body;
   console.log("Body:", req.body);
-  const userExists = await User.findOne({ email });
-  if (userExists) {
-    res.status(400).json({ msg: "user already exists" });
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (existingUser) {
+    res.status(400).json({ message: "User already exists" });
     return;
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const newUser = new User({ name, email, password: hashedPassword });
-  await newUser.save();
+  const newUser = await prisma.user.create({
+    data: {
+      name,
+      email,
+      password: hashedPassword,
+      isAdmin,
+    },
+  });
 
+  // Create wallet with 0 balance
+  await prisma.wallet.create({
+    data: {
+      userId: newUser.id,
+      balance: 0,
+    },
+  });
   res.status(201).json({ msg: "User created" });
 };
 
@@ -29,9 +46,12 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
 export const signin = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
   console.log("Body in signIN:", req.body);
-  const user = await User.findOne({ email });
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
   if (!user) {
-    res.status(400).json({ msg: "Invalid credentials" });
+    res.status(401).json({ message: "Invalid credentials" });
     return;
   }
 
@@ -43,7 +63,7 @@ export const signin = async (req: Request, res: Response): Promise<void> => {
 
   // console.log("Expires in:", );
 
-  const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "1d" });
+  const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: "1d" });
   res
     .cookie("token", token, {
       httpOnly: true,
@@ -51,7 +71,7 @@ export const signin = async (req: Request, res: Response): Promise<void> => {
       secure: false, // set true only in production with HTTPS
     })
     .json({
-      user: { id: user._id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email },
       token: token,
     });
 

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { User } from "../models/Users";
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
 export const checkAdmin = async (
   req: any,
@@ -7,7 +8,9 @@ export const checkAdmin = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+    });
     if (!user || !user.isAdmin) {
       res.status(403).json({ message: "Access denied: Admins only" });
       return;

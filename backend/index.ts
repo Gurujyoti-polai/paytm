@@ -4,12 +4,12 @@ import dotenv from "dotenv";
 dotenv.config();
 import cors from "cors";
 import authRoutes from "./routes/authRoutes";
-import connectDB from "./config/db";
+// import connectDB from "./config/db";
 import { AuthRequest, verifyToken } from "./middleware/authMiddleware";
 import walletRoutes from "./routes/walletRoutes";
 import adminRoutes from "./routes/adminRoutes";
 
-connectDB();
+// connectDB();
 
 const app = express();
 app.use(

@@ -1,69 +1,51 @@
 // controllers/walletController.ts
 import { Request, Response } from "express";
-import Wallet from "../models/Wallet";
-import Transaction from "../models/Transactions";
-import { User } from "../models/Users";
-import mongoose, { Types } from "mongoose";
+import { PrismaClient, Prisma } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export const getBalance = async (req: any, res: Response): Promise<void> => {
-  let wallet = await Wallet.findOne({ user: req.userId });
-  console.log("Inside getBalance");
-  if (!wallet) {
-    wallet = await Wallet.create({ user: req.userId, balance: 0 });
-    console.log("wallet is initialized", wallet);
+  try {
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId: req.userId },
+    });
+
+    if (!wallet) {
+      res.status(200).json({ balance: 0 });
+      return;
+    }
+
+    res.status(200).json({ balance: wallet.balance });
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching balance", error: err });
   }
-  console.log("This the balance ", wallet.balance);
-  res.json({ balance: wallet.balance });
 };
 
 export const sendMoney = async (req: any, res: Response): Promise<void> => {
+  const { recipientEmail, amount } = req.body;
+
+  if (!recipientEmail || !amount || amount <= 0) {
+    res.status(400).json({ message: "Invalid recipient or amount" });
+    return;
+  }
+
   try {
-    const { recipientEmail, amount } = req.body;
+    const sender = await prisma.user.findUnique({ where: { id: req.userId } });
+    const recipient = await prisma.user.findUnique({
+      where: { email: recipientEmail },
+    });
 
-    if (!recipientEmail || !amount || amount <= 0) {
-      res.status(400).json({ message: "Invalid recipient or amount" });
+    if (!sender || !recipient) {
+      res.status(404).json({ message: "Sender or recipient not found" });
       return;
     }
 
-    const sender = await User.findById(req.userId);
-    console.log("The sender: ", sender?.email);
-
-    if (!sender) {
-      res.status(404).json({ message: "Sender not found" });
-      return;
-    }
-
-    const recipient = await User.findOne({ email: recipientEmail });
-    console.log("The reciver: ", recipient?.email);
-
-    if (!recipient) {
-      res.status(404).json({ message: "Recipient not found" });
-      return;
-    }
-
-    console.log("Sender ID: ", sender._id);
-    console.log("Recipient ID: ", recipient._id);
-
-    const senderWallet = await Wallet.findOne({ user: sender._id });
-    let recipientWallet = await Wallet.findOne({ user: recipient._id });
-
-    console.log("Recipient full object:", recipient);
-    console.log("typeof recipient:", typeof recipient);
-    console.log("typeof recipient._id:", typeof recipient._id);
-
-    if (!recipientWallet) {
-      console.log("🧾 Creating wallet for recipient:", recipient._id);
-
-      recipientWallet = await Wallet.create({
-        user: recipient._id, // Keep as ObjectId
-        balance: 0,
-      });
-
-      console.log("✅ Created recipient wallet:", recipientWallet);
-    }
-
-    console.log("Sender money: ", senderWallet);
-    console.log("Reciever money: ", recipientWallet);
+    const senderWallet = await prisma.wallet.findUnique({
+      where: { userId: sender.id },
+    });
+    const recipientWallet = await prisma.wallet.findUnique({
+      where: { userId: recipient.id },
+    });
 
     if (!senderWallet || !recipientWallet) {
       res
@@ -77,38 +59,41 @@ export const sendMoney = async (req: any, res: Response): Promise<void> => {
       return;
     }
 
-    senderWallet.balance -= amount;
-    recipientWallet.balance += amount;
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.wallet.update({
+        where: { userId: sender.id },
+        data: { balance: { decrement: amount } },
+      });
 
-    await senderWallet.save();
-    await recipientWallet.save();
+      await tx.wallet.update({
+        where: { userId: recipient.id },
+        data: { balance: { increment: amount } },
+      });
 
-    const [senderTx, recipientTx] = await Transaction.create([
-      {
-        from: sender._id,
-        to: recipient._id,
-        amount,
-        type: "debit",
-        status: "success",
-      },
-      {
-        from: sender._id,
-        to: recipient._id,
-        amount,
-        type: "credit",
-        status: "success",
-      },
-    ]);
+      const debitTx = await tx.transaction.create({
+        data: {
+          fromId: sender.id,
+          toId: recipient.id,
+          amount,
+          type: "debit",
+          status: "success",
+        },
+      });
 
-    senderWallet.transactions.push(senderTx._id as Types.ObjectId);
-    recipientWallet.transactions.push(recipientTx._id as Types.ObjectId);
-
-    await senderWallet.save();
-    await recipientWallet.save();
+      const creditTx = await tx.transaction.create({
+        data: {
+          fromId: sender.id,
+          toId: recipient.id,
+          amount,
+          type: "credit",
+          status: "success",
+        },
+      });
+    });
 
     res.status(200).json({ message: "Transaction successful" });
   } catch (error) {
-    console.error("💥 Transaction Error:", error);
+    console.error("Transaction error", error);
     res.status(500).json({ message: "Transaction failed", error });
   }
 };
@@ -117,15 +102,18 @@ export const getTransactions = async (
   req: any,
   res: Response
 ): Promise<void> => {
-  // console.log("Inside getTransaction");
+  try {
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        OR: [{ fromId: req.userId }, { toId: req.userId }],
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
-  const wallet = await Wallet.findOne({ user: req.userId }).populate(
-    "transactions"
-  );
-  if (!wallet) {
-    res.status(404).json({ message: "Wallet not found" });
-    return;
+    res.status(200).json(transactions);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Error fetching transactions", error: err });
   }
-
-  res.json({ transactions: wallet.transactions });
 };

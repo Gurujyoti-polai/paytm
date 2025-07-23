@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 type Transaction = {
-  _id: string;
+  id: string;
   from: string;
   to: string;
   amount: number;
@@ -62,7 +62,7 @@ const Dashboard = () => {
           headers: authHeader,
         }
       );
-      setTransactions(data.transactions);
+      setTransactions(data);
     } catch (err) {
       console.error("Failed to fetch transactions", err);
     }
@@ -109,7 +109,7 @@ const Dashboard = () => {
         <h3>Transactions</h3>
         <ul>
           {transactions.map((tx) => (
-            <li key={tx._id}>
+            <li key={tx.id}>
               {tx.type.toUpperCase()} ₹{tx.amount}{" "}
               {tx.type === "debit" ? `to ${tx.to}` : `from ${tx.from}`}
             </li>

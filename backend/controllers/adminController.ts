@@ -1,27 +1,31 @@
 import { Request, Response } from "express";
-import { User } from "../models/Users";
-import Wallet from "../models/Wallet";
+// import { User } from "../models/Users";
+// import Wallet from "../models/Wallet";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export const getAllUsersWithTransactions = async (
-  req: Request,
+  req: any,
   res: Response
 ): Promise<void> => {
   try {
-    const users = await User.find().select("-password"); // Don't send password
+    const isAdmin = req.isAdmin;
 
-    const data = await Promise.all(
-      users.map(async (user) => {
-        const wallet = await Wallet.findOne({ user: user._id }).populate(
-          "transactions"
-        );
-        return {
-          user,
-          wallet,
-        };
-      })
-    );
+    if (!isAdmin) {
+      res.status(403).json({ message: "Unauthorized access" });
+      return;
+    }
 
-    res.status(200).json(data);
+    const users = await prisma.user.findMany({
+      include: {
+        wallet: true,
+        sentTransactions: true,
+        receivedTransactions: true,
+      },
+    });
+
+    res.status(200).json(users);
   } catch (err) {
     res
       .status(500)

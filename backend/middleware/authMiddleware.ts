@@ -26,8 +26,8 @@ export const verifyToken = async (
     // console.log("🍪 Token found in cookie:", token);
   }
 
-  // console.log("Inside entering middleware");
-  // console.log("🔒 Incoming Request with Token:", token);
+  console.log("Inside entering middleware");
+  console.log("🔒 Incoming Request with Token:", token);
 
   if (!token) {
     // console.log("❌ No token found in either Authorization header or cookies");
@@ -40,9 +40,9 @@ export const verifyToken = async (
       id: string;
     };
     req.userId = decoded.id;
-    // console.log("Inside middleware");
-    // console.log("Now userId", req.userId);
-    // console.log("✅ Token verified. User ID:", decoded.id);
+    console.log("Inside middleware");
+    console.log("Now userId", req.userId);
+    console.log("✅ Token verified. User ID:", decoded);
     next();
   } catch (error) {
     // console.log("⛔ Invalid token:", error);

@@ -20,8 +20,8 @@ export const getAllUsersWithTransactions = async (
     const users = await prisma.user.findMany({
       include: {
         wallet: true,
-        sentTransactions: true,
-        receivedTransactions: true,
+        sendTxns: true,
+        recievedTxns: true,
       },
     });
 

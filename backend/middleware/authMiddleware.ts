@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import redis from "../redis/redisClient";
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -17,7 +18,7 @@ export const verifyToken = async (
   // Check for token in Authorization header first
   let token = null;
   const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+  if (authHeader && authHeader.startsWith("Bearer ")) {
     token = authHeader.substring(7); // Remove 'Bearer ' prefix
     // console.log("🔑 Token found in Authorization header:", token);
   } else {
@@ -39,7 +40,15 @@ export const verifyToken = async (
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
       id: string;
     };
+
+    // Optional blacklist check
+    const blacklisted = await redis.get(`bl_${token}`);
+    if (blacklisted) {
+      res.status(401).json({ message: "Token is blacklisted" });
+      return;
+    }
     req.userId = decoded.id;
+    // req.isAdmin = decoded.isAdmin;
     console.log("Inside middleware");
     console.log("Now userId", req.userId);
     console.log("✅ Token verified. User ID:", decoded);

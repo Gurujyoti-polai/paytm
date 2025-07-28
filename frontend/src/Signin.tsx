@@ -12,8 +12,9 @@ function Signin() {
         try {
             const res = await axios.post('http://localhost:5001/api/auth/signin', form);
             // console.log("Request sent to backend");
-            if(res.data.token){
-                localStorage.setItem('token', res.data.token);
+            const token = res.data.accessToken;
+            if(token){
+                localStorage.setItem('token', token);
                 alert('Login successful');
                 navigate('/dashboard');
             } else {
